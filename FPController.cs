@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -30,6 +30,10 @@ public class FPController : MonoBehaviour
     float z;
     bool cursorIsLocked = true;
     bool lockCursor = true;
+
+    // These help with overlapping stepping noises
+    bool playingWalking = false;
+    bool previouslyGrounded = true;
 
     // Inventory
     int numAmmo = 0;
@@ -114,18 +118,33 @@ public class FPController : MonoBehaviour
         {
             anim.SetBool("walk", false);
             CancelInvoke("PlayFootStepAudio");
+            //Helping with overlapping step noise
+            playingWalking = false;
         }
 
         // Jumping (with sounds)
+        bool grounded = isGrounded();
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded())
         {
             rb.AddForce(0, 300, 0);
             jump.Play();
             if (anim.GetBool("walk"))
+            {
                 CancelInvoke("PlayFootStepAudio");
+                //Helping with overlapping step noise
+                playingWalking = false;
+            }
 
         }
 
+
+        else if (!previouslyGrounded && grounded)
+        {
+            land.Play();        
+        }
+        // Holds previous grounded state
+        previouslyGrounded = grounded;
+        
 
     }
 
@@ -139,6 +158,7 @@ public class FPController : MonoBehaviour
         //Swaps them around at random location
         footsteps[n] = footsteps[0];
         footsteps[0] = audioSource;
+        playingWalking = true;
     }
    void FixedUpdate()
     {
@@ -237,13 +257,15 @@ public class FPController : MonoBehaviour
 
         }
        
-         
         // Make sound when we are grounded.
-        if (isGrounded())
+        else if (isGrounded())
         {
-            land.Play();
-            if (anim.GetBool("walk"))
-                InvokeRepeating("PlayFootStepAudio", 0 , 0.4f);
+
+            if (anim.GetBool("walk") && !playingWalking)
+            {
+                InvokeRepeating("PlayFootStepAudio", 0, 0.4f);
+
+            }
         }
 
         
